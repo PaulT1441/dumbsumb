@@ -10,6 +10,8 @@ Déploiement en production d'**Infinite Mario**, un jeu de plateforme en HTML5/J
 
 - [Présentation](#présentation)
 - [Architecture](#architecture)
+- [Présentation](#présentation)
+- [Architecture](#architecture)
 - [Système de score](#système-de-score)
 - [API des scores](#api-des-scores)
 - [Structure du dépôt](#structure-du-dépôt)
@@ -18,6 +20,8 @@ Déploiement en production d'**Infinite Mario**, un jeu de plateforme en HTML5/J
 - [Construire et publier les images](#construire-et-publier-les-images)
 - [Déploiement en production](#déploiement-en-production)
 - [Base de données](#base-de-données)
+- [Commandes du jeu](#commandes-du-jeu)
+- [Crédits et licence](#crédits-et-licence)
 - [Commandes du jeu](#commandes-du-jeu)
 - [Crédits et licence](#crédits-et-licence)
 
@@ -33,6 +37,9 @@ Le projet industrialise sa mise en ligne :
 - **API des scores** en Node.js / Express, dans son propre conteneur ;
 - **Base de données** PostgreSQL avec volume persistant ;
 - **Orchestration** avec Docker Compose et **réseaux isolés** (frontend / backend) ;
+- **Reverse proxy** Nginx avec découverte automatique des conteneurs ;
+- **HTTPS automatique** via ACME / Let's Encrypt, avec renouvellement des certificats ;
+- **Nom de domaine dynamique** via DuckDNS.
 - **Reverse proxy** Nginx avec découverte automatique des conteneurs ;
 - **HTTPS automatique** via ACME / Let's Encrypt, avec renouvellement des certificats ;
 - **Nom de domaine dynamique** via DuckDNS.
@@ -64,7 +71,6 @@ Le projet industrialise sa mise en ligne :
             │  Node.js / Express    │  SQL   │   PostgreSQL 16       │
             │        :3000          │        │  volume pgdata        │
             └───────────────────────┘        └───────────────────────┘
-```
 
 | Service | Image | Réseaux | Rôle |
 |---|---|---|---|
@@ -134,6 +140,7 @@ Règles de validation :
 ```
 .
 ├── Enjine/               # Moteur de jeu 2D (canvas, sprites, caméra, clavier, timer…)
+.
 ├── code/                 # Logique du jeu (personnage, ennemis, niveaux, états, score…)
 ├── images/               # Sprite sheets et graphismes
 ├── sounds/               # Effets sonores (.wav / .mp3)
@@ -151,12 +158,19 @@ Règles de validation :
 ├── index.html            # Point d'entrée du jeu (scripts non minifiés)
 ├── minTest.html          # Variante utilisant les versions minifiées
 ├── enjine.min.js         # Moteur minifié
+├── index.html            # Point d'entrée du jeu (scripts non minifiés)
+├── minTest.html          # Variante utilisant les versions minifiées
+├── enjine.min.js         # Moteur minifié
+├── mario.min.js          # Code du jeu minifié
+├── flipTest.html         # Page de test du rendu des sprites
+├── Dockerfile            # Image de l'application (Nginx Alpine)
 ├── mario.min.js          # Code du jeu minifié
 ├── flipTest.html         # Page de test du rendu des sprites
 ├── Dockerfile            # Image de l'application (Nginx Alpine)
 ├── .dockerignore         # Fichiers exclus de l'image mario-app
 ├── docker-compose.yaml   # Stack complète (proxy + ACME + application + API + base)
 ├── .env.example          # Variables d'environnement à copier en .env
+├── LICENSE.md            # Unlicense
 └── LICENSE.md            # Unlicense
 ```
 
@@ -169,15 +183,29 @@ Règles de validation :
 
 ## Lancer en local
 
-**Jeu seul (sans classement)** : le jeu fonctionne avec n'importe quel serveur HTTP. Le panneau des scores affichera simplement « Hors ligne ».
+Le jeu est entièrement statique et fonctionne avec n'importe quel serveur HTTP ; pour la version complète avec API et base de données, la stack Docker ci-dessous fournit en plus le classement en temps réel.
 
 ```bash
 git clone https://github.com/sabrinatch/dumbsumb.git
 cd dumbsumb
-python3 -m http.server 8000
+```bash
+git clone https://github.com/sabrinatch/dumbsumb.git
+cd dumbsumb
 ```
 
-**Jeu + API + base de données** : lancer uniquement les services applicatifs, sans le reverse proxy ni ACME, et publier le port de `mario-app` :
+# Option 1 : serveur Python
+python3 -m http.server 8000
+
+# Option 2 : conteneur Nginx avec le dossier monté
+docker run --rm -p 8080:80 -v "$PWD":/usr/share/nginx/html:ro nginx:alpine
+
+Puis ouvrir [http://localhost:8000](http://localhost:8000) (ou `:8080` selon l'option).
+
+> ℹ️ Ouvrir `index.html` directement en `file://` ne fonctionne pas toujours : certains navigateurs bloquent le chargement des ressources. Passez par un serveur HTTP.
+
+## Jeu + API + base de données
+
+Lancer uniquement les services applicatifs, sans le reverse proxy ni ACME, et publier le port de `mario-app` :
 
 ```bash
 cp .env.example .env            # puis définir POSTGRES_PASSWORD
@@ -188,8 +216,6 @@ docker compose run -d --name mario-local -p 8080:80 mario-app
 Puis ouvrir [http://localhost:8080](http://localhost:8080). `docker compose run` démarre automatiquement `api` et `db` grâce aux dépendances.
 
 Pour tout arrêter : `docker rm -f mario-local && docker compose down`.
-
-> ℹ️ Ouvrir `index.html` directement en `file://` ne fonctionne pas toujours : certains navigateurs bloquent le chargement des ressources. Passez par un serveur HTTP.
 
 ## Construire et publier les images
 
@@ -209,6 +235,31 @@ npx terser Enjine/core.js Enjine/gameCanvas.js Enjine/keyboardInput.js Enjine/re
 
 npx terser $(grep -o 'code/[a-zA-Z]*\.js' index.html) -c -m -o mario.min.js
 ```
+
+## Construire l'image Docker
+
+```bash
+docker build -t sabrinatch/mario-app:v1.0.0 .
+docker run --rm -p 8080:80 sabrinatch/mario-app:v1.0.0
+```
+
+Publication sur Docker Hub :
+
+```bash
+docker login
+docker push sabrinatch/mario-app:v1.0.0
+```
+
+> ⚠️ Le `Dockerfile` copie l'intégralité du contexte de build (`COPY . …`). Son commentaire mentionne un `.dockerignore`, mais ce fichier n'est pas présent dans le dépôt. Pour éviter d'embarquer `.git`, le `Dockerfile` ou le `docker-compose.yaml` dans l'image, ajoutez par exemple :
+>
+> ```
+> .git
+> Dockerfile
+> docker-compose.yaml
+> README*
+> LICENSE.md
+> midi/urldecode.py
+> ```
 
 ## Déploiement en production
 
@@ -230,6 +281,8 @@ npx terser $(grep -o 'code/[a-zA-Z]*\.js' index.html) -c -m -o mario.min.js
 
    Le fichier `.env` est ignoré par Git : ne le commitez jamais.
 
+   Les variables de `mario-app` dans `docker-compose.yaml` restent également utilisées pour le reverse proxy : `VIRTUAL_HOST`, `VIRTUAL_PORT`, `ACME_HOST`.
+
 3. **Démarrer la stack** :
 
    ```bash
@@ -239,6 +292,7 @@ npx terser $(grep -o 'code/[a-zA-Z]*\.js' index.html) -c -m -o mario.min.js
 4. **Vérifier** :
 
    ```bash
+   docker compose ps
    docker compose ps
    docker compose logs -f nginx-proxy-acme       # émission du certificat
    docker compose logs api                       # doit afficher "schema ready"
@@ -251,7 +305,7 @@ npx terser $(grep -o 'code/[a-zA-Z]*\.js' index.html) -c -m -o mario.min.js
 
 ```bash
 git pull
-docker compose up -d --build mario-app api
+docker compose up -d --build mario-app api  # ou docker compose pull mario-app && docker compose up -d mario-app après publication
 ```
 
 **Arrêt :**
@@ -268,6 +322,7 @@ docker compose down -v     # ⚠️ supprime aussi les volumes, donc tous les sc
 - L'API tourne avec un utilisateur non root, valide toutes les entrées, utilise des requêtes SQL paramétrées et limite le débit des envois.
 - Le socket Docker est monté en **lecture seule** dans les deux conteneurs du proxy. Il donne néanmoins une visibilité étendue sur l'hôte : à réserver à des images de confiance.
 - Les images du proxy utilisent le tag `latest` ; épingler une version précise rendra les déploiements reproductibles.
+- La clé `version: '3.8'` est obsolète avec Docker Compose v2 et peut être supprimée.
 
 ## Base de données
 
