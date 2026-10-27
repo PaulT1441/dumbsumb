@@ -29,9 +29,12 @@ Mario.LoseState.prototype.Enter = function() {
     
     this.font = Mario.SpriteCuts.CreateBlackFont();
     this.font.Strings[0] = { String: "Game over!", X: 116, Y: 160 };
-    
+    this.font.Strings[1] = { String: "SCORE " + Mario.FormatScore(Mario.MarioCharacter.Score), X: 104, Y: 180 };
+
     this.drawManager.Add(this.font);
     this.drawManager.Add(this.gameOver);
+
+    Mario.GameFinished("lose");
 };
 
 Mario.LoseState.prototype.Exit = function() {
@@ -44,7 +47,7 @@ Mario.LoseState.prototype.Exit = function() {
 
 Mario.LoseState.prototype.Update = function(delta) {
     this.drawManager.Update(delta);
-    if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S)) {
+    if (!Mario.IsInputCaptured() && Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S)) {
         this.wasKeyDown = true;
     }
 };

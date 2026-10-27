@@ -1,0 +1,17 @@
+# Exclusions du contexte de build de l'image mario-app
+# (seuls les fichiers web du jeu doivent finir dans /usr/share/nginx/html)
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+Dockerfile
+docker-compose*.yaml
+docker-compose*.yml
+README
+README.md
+LICENSE.md
+api/
+nginx/
+midi/urldecode.py
+**/node_modules

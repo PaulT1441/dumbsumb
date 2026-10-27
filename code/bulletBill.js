@@ -100,6 +100,7 @@ Mario.BulletBill.prototype.ShellCollideCheck = function(shell) {
     var xD = shell.X - this.X, yD = shell.Y - this.Y;
     if (xD > -16 && xD < 16) {
         if (yD > -this.Height && yD < shell.Height) {
+            Mario.MarioCharacter.AddKill(Mario.Points.ShotKill);
             Enjine.Resources.PlaySound("kick");
             this.Dead = true;
             this.Xa = 0;

@@ -10,6 +10,12 @@ Mario.Character = function() {
     this.Coins = 0;
     this.Lives = 3;
     this.LevelString = "none";
+
+    //score tracking (added for the leaderboard)
+    this.Score = 0;
+    this.Kills = 0;
+    this.TotalCoins = 0;
+    this.LevelsCleared = 0;
     this.GroundInertia = 0.89;
     this.AirInertia = 0.89;
     
@@ -534,7 +540,8 @@ Mario.Character.prototype.Stomp = function(object) {
     this.SubMove(0, targetY - this.Y);
     
     if (object instanceof Mario.Enemy || object instanceof Mario.BulletBill) {
-        
+
+        this.AddKill(Mario.Points.Stomp);
         Enjine.Resources.PlaySound("kick");
         this.XJumpSpeed = 0;
         this.YJumpSpeed = -1.9;
@@ -584,6 +591,10 @@ Mario.Character.prototype.GetHurt = function() {
 };
 
 Mario.Character.prototype.Win = function() {
+    if (this.WinTime === 0) {
+        this.LevelsCleared++;
+        this.AddScore(Mario.Points.LevelClear + Math.max(0, this.World.TimeLeft | 0) * Mario.Points.TimeBonus);
+    }
     this.XDeathPos = this.X | 0;
     this.YDeathPos = this.Y | 0;
     this.World.Paused = true;
@@ -606,6 +617,7 @@ Mario.Character.prototype.GetFlower = function() {
     }
     
     if (!this.Fire) {
+        this.AddScore(Mario.Points.PowerUp);
         this.World.Paused = true;
         this.PowerUpTime = 18;
         Enjine.Resources.PlaySound("powerup");
@@ -622,6 +634,7 @@ Mario.Character.prototype.GetMushroom = function() {
     }
     
     if (!this.Large) {
+        this.AddScore(Mario.Points.PowerUp);
         this.World.Paused = true;
         this.PowerUpTime = 18;
         Enjine.Resources.PlaySound("powerup");
@@ -654,7 +667,18 @@ Mario.Character.prototype.Get1Up = function() {
     }
 };
 
+Mario.Character.prototype.AddScore = function(points) {
+    this.Score = Math.min(this.Score + points, 99999999);
+};
+
+Mario.Character.prototype.AddKill = function(points) {
+    this.Kills++;
+    this.AddScore(points);
+};
+
 Mario.Character.prototype.GetCoin = function() {
+    this.TotalCoins++;
+    this.AddScore(Mario.Points.Coin);
     this.Coins++;
     if (this.Coins === 100) {
         this.Coins = 0;

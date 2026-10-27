@@ -1,6 +1,9 @@
 FROM nginx:alpine
 
-# Grâce au .dockerignore, seuls les fichiers web (HTML, JS, CSS) seront copiés
+# Configuration Nginx : fichiers statiques + reverse proxy /api/ vers l'API des scores
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Fichiers du jeu uniquement (le reste est exclu par .dockerignore)
 COPY . /usr/share/nginx/html
 
 EXPOSE 80

@@ -1,10 +1,11 @@
-version: '3.8'
-
 # ==============================================================================
 # DOCKER COMPOSE - ENVIRONNEMENT DE PRODUCTION
 # ==============================================================================
 # Ce fichier orchestre le déploiement complet de l'application Mario Bros
-# avec un Reverse Proxy Nginx et la gestion automatique des certificats SSL/TLS.
+# avec un Reverse Proxy Nginx, la gestion automatique des certificats SSL/TLS,
+# une API de gestion des scores et sa base de données PostgreSQL.
+#
+# Les variables (${...}) sont lues depuis le fichier .env (voir .env.example).
 # ==============================================================================
 
 services:
@@ -26,6 +27,8 @@ services:
       - vhosts:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
       - certs:/etc/nginx/certs:ro
+    networks:
+      - frontend
 
   # ----------------------------------------------------------------------------
   # 2. ACME COMPANION (Générateur & Renouveleur automatique de certificats SSL)
@@ -46,21 +49,86 @@ services:
       - html:/usr/share/nginx/html
       - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - frontend
 
   # ----------------------------------------------------------------------------
   # 3. APPLICATION MARIO BROS (Le conteneur applicatif)
   # ----------------------------------------------------------------------------
+  # Sert le jeu et relaie /api/ vers l'API des scores (voir nginx/default.conf).
   mario-app:
     container_name: mario-app
-    image: sabrinatch/mario-app:v1.0.0
+    build: .
+    image: sabrinatch/mario-app:v1.1.0
     restart: always
     expose:
       - "80"  # Le port est exposé uniquement sur le réseau interne Docker
     environment:
-      - VIRTUAL_HOST=dumbsumb.duckdns.org
+      - VIRTUAL_HOST=${DOMAIN:-dumbsumb.duckdns.org}
       - VIRTUAL_PORT=80
-      - ACME_HOST=dumbsumb.duckdns.org
-      - ACME_EMAIL=sabrina.tchouar1@ynov.com
+      - ACME_HOST=${DOMAIN:-dumbsumb.duckdns.org}
+      - ACME_EMAIL=${ACME_EMAIL:-sabrina.tchouar1@ynov.com}
+    depends_on:
+      - api
+    networks:
+      - frontend   # joignable par le reverse proxy
+      - backend    # peut joindre l'API
+
+  # ----------------------------------------------------------------------------
+  # 4. API DES SCORES (Node.js / Express)
+  # ----------------------------------------------------------------------------
+  # Pas de VIRTUAL_HOST : l'API n'est jamais exposée directement, uniquement
+  # via mario-app sur le réseau "backend".
+  api:
+    container_name: mario-api
+    build: ./api
+    image: sabrinatch/mario-api:v1.0.0
+    restart: always
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-mario}
+      PGUSER: ${POSTGRES_USER:-mario}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans le fichier .env}
+      PORT: "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ----------------------------------------------------------------------------
+  # 5. BASE DE DONNÉES DES SCORES (PostgreSQL)
+  # ----------------------------------------------------------------------------
+  # Aucun port publié : la base n'est accessible que depuis le réseau "backend".
+  db:
+    container_name: mario-db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mario}
+      POSTGRES_USER: ${POSTGRES_USER:-mario}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans le fichier .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - backend
+
+# ==============================================================================
+# RÉSEAUX
+# ==============================================================================
+# frontend : reverse proxy <-> application
+# backend  : application <-> API <-> base de données (isolé, sans accès Internet)
+networks:
+  frontend: {}
+  backend:
+    internal: true
 
 # ==============================================================================
 # VOLUMES PERSISTANTS MANAGÉS PAR DOCKER
@@ -70,3 +138,4 @@ volumes:
   html: {}
   certs: {}
   acme: {}
+  pgdata: {}   # données PostgreSQL (scores)
