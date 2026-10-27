@@ -24,9 +24,9 @@ services:
       # Accès en lecture seule au socket Docker sur /tmp/docker.sock requis par nginx-proxy
       - /var/run/docker.sock:/tmp/docker.sock:ro
       # Volumes partagés pour stocker la configuration vhost, les fichiers HTML et les certificats SSL
-      - vhosts:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - certs:/etc/nginx/certs:ro
+      - vhosts:/etc/nginx/vhost.d # Configuration des vhosts
+      - html:/usr/share/nginx/html # partage le répertoire web pour les challenges ACME
+      - certs:/etc/nginx/certs:ro # Certificats SSL/TLS générés par ACME
     networks:
       - frontend
 
@@ -40,15 +40,15 @@ services:
     depends_on:
       - nginx-proxy  # S'assure que le proxy tourne avant d'interagir avec
     environment:
-      NGINX_PROXY_CONTAINER: nginx-reverse-proxy
-      NGINX_DOCKER_GEN_CONTAINER: nginx-reverse-proxy
+      NGINX_PROXY_CONTAINER: nginx-reverse-proxy # pour indiquer à ACME quel conteneur recharger pour mettre à jour les certificats
+      NGINX_DOCKER_GEN_CONTAINER: nginx-reverse-proxy # pour indiquer à ACME quel conteneur génère la configuration docker.
       CERTS_UPDATE_INTERVAL: "28800" # Vérification des renouvellements toutes les 8h
     volumes:
-      - certs:/etc/nginx/certs:rw
-      - vhosts:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - acme:/etc/acme.sh
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs:rw # Accès au répertoire des certificats pour les renouveler
+      - vhosts:/etc/nginx/vhost.d # Configuration des vhosts
+      - html:/usr/share/nginx/html # partage le répertoire web pour les challenges ACME
+      - acme:/etc/acme.sh # Répertoire de stockage des certificats générés par ACME
+      - /var/run/docker.sock:/var/run/docker.sock:ro # accès au socket Docker
     networks:
       - frontend
 
@@ -64,10 +64,10 @@ services:
     expose:
       - "80"  # Le port est exposé uniquement sur le réseau interne Docker
     environment:
-      - VIRTUAL_HOST=${DOMAIN:-dumbsumb.duckdns.org}
-      - VIRTUAL_PORT=80
-      - ACME_HOST=${DOMAIN:-dumbsumb.duckdns.org}
-      - ACME_EMAIL=${ACME_EMAIL:-sabrina.tchouar1@ynov.com}
+      - VIRTUAL_HOST=${DOMAIN:-dumbsumb.duckdns.org} #indique à nginx-proxy le nom de domaine pour lequel il doit générer un vhost
+      - VIRTUAL_PORT=80 #indique à nginx-proxy le port sur lequel l'application écoute (ici 80)
+      - ACME_HOST=${DOMAIN:-dumbsumb.duckdns.org} #indique à ACME le nom de domaine pour lequel il doit générer un certificat SSL/TLS
+      - ACME_EMAIL=${ACME_EMAIL:-sabrina.tchouar1@ynov.com} #indique à ACME l'adresse email pour recevoir les notifications de renouvellement de certificat
     depends_on:
       - api
     networks:
@@ -89,11 +89,11 @@ services:
       PGPORT: "5432"
       PGDATABASE: ${POSTGRES_DB:-mario}
       PGUSER: ${POSTGRES_USER:-mario}
-      PGPASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans le fichier .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:Définir POSTGRES_PASSWORD dans le fichier .env}
       PORT: "3000"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy #blocage de l'API tant que la base de données n'est pas prête à accepter des connexions
     networks:
       - backend
 
@@ -108,11 +108,11 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mario}
       POSTGRES_USER: ${POSTGRES_USER:-mario}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans le fichier .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:Définir POSTGRES_PASSWORD dans le fichier .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"] #test de santé pour vérifier que la base de données est prête à accepter des connexions
       interval: 10s
       timeout: 5s
       retries: 5
