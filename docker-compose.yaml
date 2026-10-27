@@ -67,7 +67,7 @@ services:
       - VIRTUAL_HOST=${DOMAIN:-dumbsumb.duckdns.org}
       - VIRTUAL_PORT=80
       - ACME_HOST=${DOMAIN:-dumbsumb.duckdns.org}
-      - ACME_EMAIL=${ACME_EMAIL:-sabrina.tchouar1@ynov.com}
+      - ACME_EMAIL=${ACME_EMAIL:-votre.mail@ynov.com}
     depends_on:
       - api
     networks:
