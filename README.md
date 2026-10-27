@@ -71,6 +71,7 @@ Le projet industrialise sa mise en ligne :
             │  Node.js / Express    │  SQL   │   PostgreSQL 16       │
             │        :3000          │        │  volume pgdata        │
             └───────────────────────┘        └───────────────────────┘
+```
 
 | Service | Image | Réseaux | Rôle |
 |---|---|---|---|
