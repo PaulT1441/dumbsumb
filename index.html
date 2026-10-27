@@ -1,13 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Infinite Mario - JavaScript</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+		<link rel="stylesheet" href="scores/scores.css">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 	</head>
 	<body>
-		<canvas id="canvas" width="640" height="480">
-			<p>Your browser does not support the canvas element.</p>
-		</canvas>
+		<header class="site-header">
+			<h1>INFINITE MARIO</h1>
+			<p>Des niveaux générés à l'infini. Combien de points arriveras-tu à faire ?</p>
+		</header>
+
+		<main class="layout">
+			<section aria-label="Jeu">
+				<div class="game-frame">
+					<canvas id="canvas" width="640" height="480">
+						<p>Your browser does not support the canvas element.</p>
+					</canvas>
+				</div>
+				<div class="controls" aria-label="Commandes">
+					<span><kbd>←</kbd><kbd>→</kbd> se déplacer</span>
+					<span><kbd>↓</kbd> s'accroupir</span>
+					<span><kbd>S</kbd> sauter</span>
+					<span><kbd>A</kbd> courir / tirer</span>
+				</div>
+			</section>
+
+			<aside class="board" aria-labelledby="board-title">
+				<h2 id="board-title">MEILLEURS SCORES <span id="board-status" class="board-status">Chargement</span></h2>
+
+				<div class="stats">
+					<div class="stat"><span class="stat-value" id="stat-best">–</span><span class="stat-label">Record</span></div>
+					<div class="stat"><span class="stat-value" id="stat-games">–</span><span class="stat-label">Parties</span></div>
+					<div class="stat"><span class="stat-value" id="stat-players">–</span><span class="stat-label">Joueurs</span></div>
+				</div>
+
+				<table class="scores-table" id="scores-table" hidden>
+					<thead>
+						<tr>
+							<th class="col-rank">#</th>
+							<th>Joueur</th>
+							<th class="num">Score</th>
+							<th class="num">Monde</th>
+						</tr>
+					</thead>
+					<tbody id="scores-body"></tbody>
+				</table>
+				<p class="board-empty" id="scores-empty">Aucun score pour l'instant. Sois le premier !</p>
+
+				<details class="points">
+					<summary>Comment gagner des points ?</summary>
+					<ul id="points-list"></ul>
+				</details>
+			</aside>
+		</main>
+
+		<footer class="site-footer">
+			Portage JavaScript d'Infinite Mario (Notch) · projet dumbsumb
+		</footer>
+
+		<div class="modal-backdrop" id="score-modal" hidden>
+			<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+				<h3 id="modal-title">Game over</h3>
+				<div class="modal-score" id="modal-score">0</div>
+				<div class="modal-details" id="modal-details"></div>
+				<form id="score-form" autocomplete="off">
+					<label for="player-name">Ton pseudo</label>
+					<input id="player-name" name="name" maxlength="16" placeholder="MARIO" required>
+					<div class="modal-actions">
+						<button type="button" class="btn btn-secondary" id="btn-skip">Passer</button>
+						<button type="submit" class="btn btn-primary" id="btn-submit">Enregistrer</button>
+					</div>
+				</form>
+				<p class="modal-message" id="modal-message" role="status"></p>
+				<p class="modal-hint">Appuie ensuite sur <kbd>S</kbd> pour revenir au menu.</p>
+			</div>
+		</div>
 
         <!-- Enjine Includes -->
         <script src="Enjine/core.js"></script>
@@ -57,6 +130,9 @@
         <script src="code/levelState.js"></script>
 
         <script src="code/music.js"></script>
+
+        <!-- Leaderboard (scores API) -->
+        <script src="scores/scores.js"></script>
 
         <script>$(document).ready(function() { new Enjine.Application().Initialize(new Mario.LoadingState(), 320, 240) });</script>
 	</body>

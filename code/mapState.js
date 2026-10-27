@@ -626,6 +626,8 @@ Mario.MapState.prototype.Draw = function(context) {
     this.FontShadow.Strings[0] = { String: "MARIO " + Mario.MarioCharacter.Lives, X: 5, Y: 5 };
     this.Font.Strings[1] = { String: "WORLD " + (this.WorldNumber + 1), X: 256, Y: 4 };
     this.FontShadow.Strings[1] = { String: "WORLD " + (this.WorldNumber + 1), X: 257, Y: 5 };
+    this.Font.Strings[2] = { String: "SCORE " + Mario.FormatScore(Mario.MarioCharacter.Score), X: 4, Y: 228 };
+    this.FontShadow.Strings[2] = { String: "SCORE " + Mario.FormatScore(Mario.MarioCharacter.Score), X: 5, Y: 229 };
 
     this.FontShadow.Draw(context, this.camera);
     this.Font.Draw(context, this.camera);

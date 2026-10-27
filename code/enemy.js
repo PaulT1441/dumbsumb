@@ -286,8 +286,9 @@ Mario.Enemy.prototype.ShellCollideCheck = function(shell) {
     var xd = shell.X - this.X, yd = shell.Y - this.Y;
     if (xd > -16 && xd < 16) {
         if (yd > -this.Height && yd < shell.Height) {
+            Mario.MarioCharacter.AddKill(Mario.Points.ShotKill);
             Enjine.Resources.PlaySound("kick");
-            
+
             this.Xa = shell.Facing * 2;
             this.Ya = -5;
             this.FlyDeath = true;
@@ -314,7 +315,8 @@ Mario.Enemy.prototype.FireballCollideCheck = function(fireball) {
             if (this.NoFireballDeath) {
                 return true;
             }
-        
+
+            Mario.MarioCharacter.AddKill(Mario.Points.ShotKill);
             Enjine.Resources.PlaySound("kick");
             
             this.Xa = fireball.Facing * 2;

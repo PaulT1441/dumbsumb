@@ -52,8 +52,21 @@ Enjine.KeyboardInput = {
     },
     
     KeyDownEvent: function(event) {
+        // let form fields (e.g. the leaderboard name input) receive keys normally
+        if (this.IsTypingTarget(event)) {
+            return;
+        }
         this.Pressed[event.keyCode] = true;
 	this.PreventScrolling(event);
+    },
+
+    IsTypingTarget: function(event) {
+        var t = event.target || event.srcElement;
+        if (!t || !t.tagName) {
+            return false;
+        }
+        var tag = t.tagName.toUpperCase();
+        return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t.isContentEditable === true;
     },
     
     KeyUpEvent: function(event) {

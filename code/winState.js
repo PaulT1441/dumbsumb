@@ -20,6 +20,7 @@ Mario.WinState.prototype.Enter = function() {
     
     this.font = Mario.SpriteCuts.CreateBlackFont();
     this.font.Strings[0] = { String: "Thank you for saving me, Mario!", X: 36, Y: 160 };
+    this.font.Strings[1] = { String: "SCORE " + Mario.FormatScore(Mario.MarioCharacter.Score), X: 104, Y: 180 };
     
     this.kissing = new Enjine.AnimatedSprite();
     this.kissing.Image = Enjine.Resources.Images["endScene"];
@@ -32,9 +33,11 @@ Mario.WinState.prototype.Enter = function() {
     this.kissing.FramesPerSecond = 1/2;
     
     this.waitTime = 2;
-    
+
     this.drawManager.Add(this.font);
     this.drawManager.Add(this.kissing);
+
+    Mario.GameFinished("win");
 };
 
 Mario.WinState.prototype.Exit = function() {
@@ -49,7 +52,7 @@ Mario.WinState.prototype.Update = function(delta) {
     if (this.waitTime > 0) {
         this.waitTime -= delta;
     } else {
-        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S)) {
+        if (!Mario.IsInputCaptured() && Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S)) {
             this.wasKeyDown = true;
         }
     }
